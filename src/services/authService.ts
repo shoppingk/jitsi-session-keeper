@@ -1,7 +1,5 @@
-import jwt from 'jsonwebtoken';
 import { User, LoginCredentials, AuthState } from '@/types/auth';
 
-const JWT_SECRET = 'video-conference-secret-key';
 const STORAGE_KEY = 'video-conf-auth';
 
 // Mock user database
@@ -29,6 +27,27 @@ const mockUsers: Array<User & { password: string }> = [
   }
 ];
 
+// Simple token generation for browser compatibility
+function generateToken(user: User): string {
+  const tokenData = {
+    userId: user.id,
+    username: user.username,
+    role: user.role,
+    timestamp: Date.now(),
+    expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+  };
+  return btoa(JSON.stringify(tokenData));
+}
+
+function verifyToken(token: string): boolean {
+  try {
+    const tokenData = JSON.parse(atob(token));
+    return tokenData.expiresAt > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 class AuthService {
   private state: AuthState = {
     isAuthenticated: false,
@@ -45,7 +64,7 @@ class AuthService {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsedState = JSON.parse(stored);
-        if (this.verifyToken(parsedState.token)) {
+        if (parsedState.token && this.verifyToken(parsedState.token)) {
           this.state = parsedState;
         } else {
           this.clearStorage();
@@ -66,12 +85,7 @@ class AuthService {
   }
 
   private verifyToken(token: string): boolean {
-    try {
-      jwt.verify(token, JWT_SECRET);
-      return true;
-    } catch {
-      return false;
-    }
+    return verifyToken(token);
   }
 
   async login(credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> {
@@ -83,17 +97,8 @@ class AuthService {
       return { success: false, error: 'Invalid username or password' };
     }
 
-    const token = jwt.sign(
-      { 
-        userId: user.id, 
-        username: user.username, 
-        role: user.role 
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
     const { password, ...userWithoutPassword } = user;
+    const token = generateToken(userWithoutPassword);
 
     this.state = {
       isAuthenticated: true,
