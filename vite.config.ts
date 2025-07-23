@@ -5,8 +5,8 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: '/jitsi-session-keeper/',
+export default defineConfig(({ mode, command }) => ({
+  base: command === 'build' && process.env.NODE_ENV === 'production' ? '/jitsi-session-keeper/' : '/',
   server: {
     host: "::",
     port: 8080,
