@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { authService } from '@/services/authService';
 import { AuthState, LoginCredentials } from '@/types/auth';
@@ -35,6 +36,8 @@ export const useAuth = () => {
     login,
     logout,
     isAdmin: authService.isAdmin(),
-    getCurrentUser: authService.getCurrentUser
+    isSuperAdmin: authService.isSuperAdmin(),
+    getCurrentUser: authService.getCurrentUser,
+    getTenantUsers: authService.getTenantUsers
   };
 };

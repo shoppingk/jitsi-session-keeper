@@ -1,5 +1,7 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/contexts/TenantContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +13,7 @@ export const LoginForm = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { tenant } = useTenant();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +25,7 @@ export const LoginForm = () => {
       if (result.success) {
         toast({
           title: "Login successful",
-          description: "Welcome to Video Conference!",
+          description: `Welcome to ${tenant?.name}!`,
         });
       } else {
         toast({
@@ -42,16 +45,42 @@ export const LoginForm = () => {
     }
   };
 
+  // Tenant-specific demo accounts
+  const getDemoAccounts = () => {
+    if (tenant?.subdomain === 'admin') {
+      return [
+        { label: 'Super Admin', username: 'superadmin', password: 'super123' }
+      ];
+    } else if (tenant?.subdomain === 'male') {
+      return [
+        { label: 'Admin', username: 'admin', password: 'admin123' },
+        { label: 'John', username: 'john', password: 'user123' },
+        { label: 'Mike', username: 'mike', password: 'user123' }
+      ];
+    } else if (tenant?.subdomain === 'female') {
+      return [
+        { label: 'Admin', username: 'admin', password: 'admin123' },
+        { label: 'Sarah', username: 'sarah', password: 'user123' },
+        { label: 'Jane', username: 'jane', password: 'user123' }
+      ];
+    }
+    return [];
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
       <GlassCard variant="premium" className="w-full max-w-md p-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-gradient-primary rounded-full">
-              <Video className="h-8 w-8 text-primary-foreground" />
+              {tenant?.logo ? (
+                <span className="text-3xl">{tenant.logo}</span>
+              ) : (
+                <Video className="h-8 w-8 text-primary-foreground" />
+              )}
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Video Conference</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">{tenant?.name || 'Video Conference'}</h1>
           <p className="text-muted-foreground">Sign in to join meetings</p>
         </div>
 
@@ -92,17 +121,21 @@ export const LoginForm = () => {
           </Button>
         </form>
 
-        <div className="mt-8 p-4 bg-muted/50 rounded-lg">
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Demo Accounts
-          </h3>
-          <div className="text-sm space-y-1 text-muted-foreground">
-            <p><strong>Admin:</strong> admin / admin123</p>
-            <p><strong>User:</strong> user1 / user123</p>
-            <p><strong>User:</strong> user2 / user123</p>
+        {getDemoAccounts().length > 0 && (
+          <div className="mt-8 p-4 bg-muted/50 rounded-lg">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Demo Accounts - {tenant?.name}
+            </h3>
+            <div className="text-sm space-y-1 text-muted-foreground">
+              {getDemoAccounts().map((account, index) => (
+                <p key={index}>
+                  <strong>{account.label}:</strong> {account.username} / {account.password}
+                </p>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </GlassCard>
     </div>
   );

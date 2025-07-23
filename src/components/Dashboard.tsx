@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/contexts/TenantContext';
 import { recordingService } from '@/services/recordingService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,8 @@ import {
   Play,
   Users,
   Calendar,
-  Settings
+  Settings,
+  Building
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Recording } from '@/types/video';
@@ -24,7 +26,8 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isSuperAdmin } = useAuth();
+  const { tenant } = useTenant();
   const { toast } = useToast();
   const [roomName, setRoomName] = useState('');
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -45,12 +48,15 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (roomName.trim()) {
-      onJoinRoom(roomName.trim());
+      // Prefix room name with tenant to ensure isolation
+      const tenantRoomName = `${tenant?.subdomain}-${roomName.trim()}`;
+      onJoinRoom(tenantRoomName);
     }
   };
 
   const handleQuickJoin = (name: string) => {
-    onJoinRoom(name);
+    const tenantRoomName = `${tenant?.subdomain}-${name}`;
+    onJoinRoom(tenantRoomName);
   };
 
   const handleDownload = (recording: Recording) => {
@@ -76,12 +82,16 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const quickRooms = [
-    'Daily Standup',
-    'Team Meeting',
-    'Client Call',
-    'Project Review'
-  ];
+  const getQuickRooms = () => {
+    if (tenant?.subdomain === 'admin') {
+      return ['System Review', 'Tenant Management', 'Support Call', 'Analytics Review'];
+    } else if (tenant?.subdomain === 'male') {
+      return ['Men Daily Standup', 'Team Meeting', 'Client Call', 'Project Review'];
+    } else if (tenant?.subdomain === 'female') {
+      return ['Women Daily Standup', 'Team Meeting', 'Client Call', 'Project Review'];
+    }
+    return ['Daily Standup', 'Team Meeting', 'Client Call', 'Project Review'];
+  };
 
   return (
     <div className="min-h-screen bg-gradient-hero p-4">
@@ -91,15 +101,23 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-gradient-primary rounded-full">
-                <Video className="h-8 w-8 text-primary-foreground" />
+                {tenant?.logo ? (
+                  <span className="text-3xl">{tenant.logo}</span>
+                ) : (
+                  <Video className="h-8 w-8 text-primary-foreground" />
+                )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Video Conference</h1>
+                <h1 className="text-2xl font-bold">{tenant?.name}</h1>
                 <p className="text-muted-foreground">Welcome back, {user?.username}!</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building className="h-4 w-4" />
+                <span>{tenant?.subdomain}</span>
+              </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span className="capitalize">{user?.role}</span>
@@ -130,6 +148,9 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
                     onChange={(e) => setRoomName(e.target.value)}
                     className="text-lg h-12"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Room will be created as: {tenant?.subdomain}-{roomName || 'roomname'}
+                  </p>
                 </div>
                 <Button type="submit" variant="video" size="lg" className="w-full">
                   <Video className="h-4 w-4" />
@@ -140,7 +161,7 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
               <div className="mt-6">
                 <h3 className="font-medium mb-3">Quick Join</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {quickRooms.map((room) => (
+                  {getQuickRooms().map((room) => (
                     <Button
                       key={room}
                       variant="video-outline"
@@ -220,10 +241,18 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
           <div className="space-y-6">
             <GlassCard variant="elevated" className="p-6">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-video-primary" />
-                Account Info
+                <Building className="h-5 w-5 text-video-primary" />
+                Portal Info
               </h3>
               <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Portal</span>
+                  <span className="font-medium">{tenant?.name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Subdomain</span>
+                  <span className="font-medium">{tenant?.subdomain}</span>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Username</span>
                   <span className="font-medium">{user?.username}</span>
@@ -243,7 +272,7 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
               <GlassCard variant="elevated" className="p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Settings className="h-5 w-5 text-video-primary" />
-                  Admin Features
+                  {isSuperAdmin() ? 'Super Admin Features' : 'Admin Features'}
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-video-success">
@@ -252,12 +281,24 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
                   </div>
                   <div className="flex items-center gap-2 text-video-success">
                     <div className="w-2 h-2 rounded-full bg-video-success"></div>
-                    All recordings access
+                    Portal recordings access
                   </div>
                   <div className="flex items-center gap-2 text-video-success">
                     <div className="w-2 h-2 rounded-full bg-video-success"></div>
                     Meeting management
                   </div>
+                  {isSuperAdmin() && (
+                    <>
+                      <div className="flex items-center gap-2 text-video-primary">
+                        <div className="w-2 h-2 rounded-full bg-video-primary"></div>
+                        Cross-tenant access
+                      </div>
+                      <div className="flex items-center gap-2 text-video-primary">
+                        <div className="w-2 h-2 rounded-full bg-video-primary"></div>
+                        Tenant management
+                      </div>
+                    </>
+                  )}
                 </div>
               </GlassCard>
             )}
@@ -269,6 +310,7 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
                 <p>• Test your camera and microphone before joining</p>
                 {isAdmin && <p>• Start recording at the beginning of important meetings</p>}
                 <p>• Mute your microphone when not speaking</p>
+                <p>• Rooms are isolated to your portal ({tenant?.subdomain})</p>
               </div>
             </GlassCard>
           </div>
