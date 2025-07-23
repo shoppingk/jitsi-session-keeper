@@ -272,7 +272,7 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
               <GlassCard variant="elevated" className="p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Settings className="h-5 w-5 text-video-primary" />
-                  {isSuperAdmin() ? 'Super Admin Features' : 'Admin Features'}
+                  {isSuperAdmin ? 'Super Admin Features' : 'Admin Features'}
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-video-success">
@@ -287,7 +287,7 @@ export const Dashboard = ({ onJoinRoom }: DashboardProps) => {
                     <div className="w-2 h-2 rounded-full bg-video-success"></div>
                     Meeting management
                   </div>
-                  {isSuperAdmin() && (
+                  {isSuperAdmin && (
                     <>
                       <div className="flex items-center gap-2 text-video-primary">
                         <div className="w-2 h-2 rounded-full bg-video-primary"></div>
